@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import V1 from "./V1";
 import V2 from "./V2";
+import V3 from "./V3";
 
 export default function FamilialeProjectPage() {
-  const [version, setVersion] = useState<"v1" | "v2">("v2");
+  const [version, setVersion] = useState<"v1" | "v2" | "v3">("v3");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -14,9 +15,10 @@ export default function FamilialeProjectPage() {
   const versions = [
     { id: "v1", label: "Version 1", desc: "Plan RDC Esquisse" },
     { id: "v2", label: "Version 2", desc: "Plan R+2 Détaillé" },
+    { id: "v3", label: "Version 3", desc: "Modèle 3D" },
   ];
 
-  const currentVersion = versions.find(v => v.id === version) || versions[1];
+  const currentVersion = versions.find(v => v.id === version) || versions[2];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function FamilialeProjectPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 relative overflow-auto [&>div]:!h-full [&>div]:!min-h-full">
-        {version === "v1" ? <V1 /> : <V2 />}
+        {version === "v1" ? <V1 /> : version === "v2" ? <V2 /> : <V3 />}
       </main>
     </div>
   );
