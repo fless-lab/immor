@@ -6,9 +6,10 @@ import V1 from "./V1";
 import V2 from "./V2";
 import V3 from "./V3";
 import V4 from "./V4";
+import V5 from "./V5";
 
 export default function FamilialeProjectPage() {
-  const [version, setVersion] = useState<"v1" | "v2" | "v3" | "v4">("v4");
+  const [version, setVersion] = useState<"v1" | "v2" | "v3" | "v4" | "v5">("v5");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +19,7 @@ export default function FamilialeProjectPage() {
     { id: "v2", label: "Version 2", desc: "Plan R+2 Détaillé" },
     { id: "v3", label: "Version 3", desc: "Modèle 3D" },
     { id: "v4", label: "Version 4", desc: "Vue 3D Complète" },
+    { id: "v5", label: "Version 5", desc: "3D Avancée (Explode)" },
   ];
 
   const currentVersion = versions.find(v => v.id === version) || versions[3];
@@ -70,7 +72,7 @@ export default function FamilialeProjectPage() {
                 <button
                   key={v.id}
                   onClick={() => {
-                    setVersion(v.id as "v1" | "v2");
+                    setVersion(v.id as any);
                     setIsDropdownOpen(false);
                   }}
                   className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
@@ -102,7 +104,7 @@ export default function FamilialeProjectPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 relative overflow-auto [&>div]:!h-full [&>div]:!min-h-full">
-        {version === "v1" ? <V1 /> : version === "v2" ? <V2 /> : version === "v3" ? <V3 /> : <V4 />}
+        {version === "v1" ? <V1 /> : version === "v2" ? <V2 /> : version === "v3" ? <V3 /> : version === "v4" ? <V4 /> : <V5 />}
       </main>
     </div>
   );
