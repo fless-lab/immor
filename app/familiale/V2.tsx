@@ -441,6 +441,7 @@ export default function VillaPlan() {
     const [pan, setPan] = useState({ x: 24, y: 16 });
     const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0, px: 0, py: 0 });
+    const [isDark, setIsDark] = useState(false); // Theme state
 
     const fd = FLOORS[floor];
     const selectedRoom = fd.rooms.find(r => r.id === selected);
@@ -468,22 +469,39 @@ export default function VillaPlan() {
         "2": { btn: "#28184a", active: "#a060e0" },
     };
 
+    // Theme object mapping
+    const t = {
+        bg: isDark ? "#141210" : "#faf9f7",
+        topBar: isDark ? "#1e1a16" : "#ffffff",
+        panel: isDark ? "#1a1612" : "#ffffff",
+        canvas: isDark ? "#1a1612" : "#f0ece4",
+        border: isDark ? "#3a3028" : "#e0ddd5",
+        panelBorder: isDark ? "#2e2820" : "#e0ddd5",
+        textSub: isDark ? "#666" : "#888",
+        textMuted: isDark ? "#555" : "#aaa",
+        btnBtn: isDark ? "#141210" : "#ffffff",
+        zoomBtn: isDark ? "#2a2420" : "#f4f2ee",
+        zoomBorder: isDark ? "#4a4030" : "#e0ddd5",
+        legendTitle: isDark ? "#5a5040" : "#a89b88",
+        noteLines: isDark ? "#252018" : "#f0ece4",
+    };
+
     return (
         <div style={{
             display: "flex", flexDirection: "column", height: "100vh",
-            background: "#141210", fontFamily: "'Courier New', monospace", overflow: "hidden",
-            userSelect: "none"
+            background: t.bg, fontFamily: "'Courier New', monospace", overflow: "hidden",
+            userSelect: "none", transition: "background 0.3s ease"
         }}>
             {/* ── Top Bar ── */}
             <div style={{
                 display: "flex", alignItems: "center", padding: "7px 16px", gap: 12, flexShrink: 0,
-                background: "#1e1a16", borderBottom: "1px solid #3a3028"
+                background: t.topBar, borderBottom: `1px solid ${t.border}`, transition: "background 0.3s ease"
             }}>
                 <div>
-                    <div style={{ fontSize: 10, color: C.accent, letterSpacing: 3, textTransform: "uppercase" }}>
+                    <div style={{ fontSize: 10, color: C.accent, letterSpacing: 3, textTransform: "uppercase", fontWeight: "bold" }}>
                         Villa Évolutive R+2
                     </div>
-                    <div style={{ fontSize: 8, color: "#666", marginTop: 1 }}>
+                    <div style={{ fontSize: 8, color: t.textSub, marginTop: 1 }}>
                         Agovodou, Lomé · 300 m² · Esquisse interactive
                     </div>
                 </div>
@@ -498,14 +516,14 @@ export default function VillaPlan() {
                             <button key={f} onClick={() => { setFloor(f); setSelected(null); }}
                                 style={{
                                     padding: "5px 14px", border: "1px solid",
-                                    borderColor: isCurrent ? th.active : "#3a3028",
-                                    background: isCurrent ? th.btn : "#141210",
-                                    color: isCurrent ? th.active : available ? "#999" : "#555",
+                                    borderColor: isCurrent ? th.active : t.border,
+                                    background: isCurrent ? th.btn : t.btnBtn,
+                                    color: isCurrent ? th.active : available ? t.textSub : t.textMuted,
                                     fontSize: 9, cursor: "pointer", fontFamily: "monospace",
                                     transition: "all 0.15s",
                                 }}>
                                 <div style={{ fontSize: 12, fontWeight: "bold" }}>{FLOORS[f].short}</div>
-                                <div style={{ fontSize: 7, marginTop: 1, color: isCurrent ? th.active : "#555" }}>
+                                <div style={{ fontSize: 7, marginTop: 1, color: isCurrent ? th.active : t.textMuted }}>
                                     {FLOORS[f].name.split(" ")[0]}
                                 </div>
                                 {!available && <div style={{ fontSize: 6, color: "#664422" }}>futur</div>}
@@ -514,18 +532,35 @@ export default function VillaPlan() {
                     })}
                 </div>
 
-                {/* Zoom */}
-                <div style={{ display: "flex", gap: 4, marginLeft: "auto", alignItems: "center" }}>
-                    <span style={{ fontSize: 8, color: "#555", marginRight: 4 }}>Zoom: {Math.round(zoom * 100)}%</span>
-                    {[{ l: "+", fn: () => setZoom(z => Math.min(5, z * 1.25)) },
-                    { l: "−", fn: () => setZoom(z => Math.max(0.4, z / 1.25)) },
-                    { l: "↺", fn: () => { setZoom(1.1); setPan({ x: 24, y: 16 }); } }
-                    ].map(({ l, fn }) => (
-                        <button key={l} onClick={fn} style={{
-                            width: 26, height: 26, background: "#2a2420", border: "1px solid #4a4030",
-                            color: C.accent, cursor: "pointer", fontSize: l === "↺" ? 11 : 16, fontFamily: "monospace"
-                        }}>{l}</button>
-                    ))}
+                {/* Right Controls */}
+                <div style={{ display: "flex", gap: 10, marginLeft: "auto", alignItems: "center" }}>
+                    {/* Theme Toggle */}
+                    <button
+                        onClick={() => setIsDark(!isDark)}
+                        style={{
+                            background: "none", border: "1px solid", borderColor: t.zoomBorder, borderRadius: 20,
+                            padding: "4px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+                            color: t.textSub, fontSize: 10, transition: "background 0.2s"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = t.zoomBtn}
+                        onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    >
+                        {isDark ? "☀️ Light" : "🌙 Dark"}
+                    </button>
+
+                    {/* Zoom */}
+                    <div style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 4 }}>
+                        <span style={{ fontSize: 8, color: t.textMuted, marginRight: 4 }}>Zoom: {Math.round(zoom * 100)}%</span>
+                        {[{ l: "+", fn: () => setZoom(z => Math.min(5, z * 1.25)) },
+                        { l: "−", fn: () => setZoom(z => Math.max(0.4, z / 1.25)) },
+                        { l: "↺", fn: () => { setZoom(1.1); setPan({ x: 24, y: 16 }); } }
+                        ].map(({ l, fn }) => (
+                            <button key={l} onClick={fn} style={{
+                                width: 26, height: 26, background: t.zoomBtn, border: `1px solid ${t.zoomBorder}`,
+                                color: C.accent, cursor: "pointer", fontSize: l === "↺" ? 11 : 16, fontFamily: "monospace"
+                            }}>{l}</button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -536,7 +571,7 @@ export default function VillaPlan() {
                 <div style={{
                     flex: 1, overflow: "hidden", position: "relative",
                     cursor: dragging ? "grabbing" : "grab",
-                    background: "#1a1612"
+                    background: t.canvas, transition: "background 0.3s ease"
                 }}
                     onWheel={handleWheel}
                     onMouseDown={handleMouseDown}
@@ -577,14 +612,14 @@ export default function VillaPlan() {
                                         <rect x={p(room.x)} y={p(room.y)} width={p(room.w)} height={p(room.h)}
                                             fill={C.accent} opacity={0.18} pointerEvents="none" />
                                     )}
-                                    {/* Labels — only show if not pool (pool handles its own) */}
+                                    {/* Labels */}
                                     {!room.pool && room.w > 1.2 && room.h > 0.9 && (
                                         <>
                                             <text x={p(room.x + room.w / 2)} y={p(room.y + room.h / 2) - (room.sub ? 5 : 0)}
                                                 textAnchor="middle" dominantBaseline="middle"
                                                 fontSize={Math.min(10, p(Math.min(room.w * 0.4, room.h * 0.35)))}
                                                 fontWeight={room.id === "salon" ? "700" : "500"}
-                                                fontFamily="Georgia, serif" fill={C.wall} pointerEvents="none">
+                                                fontFamily="Georgia, serif" fill={room.id === "dalle1" || room.id === "dalle2" ? t.textSub : C.wall} pointerEvents="none">
                                                 {room.label}
                                             </text>
                                             {room.sub && (
@@ -612,8 +647,7 @@ export default function VillaPlan() {
                             {COLUMNS.map(([cx, cy], i) => (
                                 <g key={`c${i}`} pointerEvents="none">
                                     <rect x={p(cx) - 5} y={p(cy) - 5} width={10} height={10} fill="#2a2018" />
-                                    <rect x={p(cx) - 4} y={p(cy) - 4} width={8} height={8} fill="none"
-                                        stroke={C.accent} strokeWidth={0.8} />
+                                    <rect x={p(cx) - 4} y={p(cy) - 4} width={8} height={8} fill="none" stroke={C.accent} strokeWidth={0.8} />
                                 </g>
                             ))}
 
@@ -684,11 +718,11 @@ export default function VillaPlan() {
 
                             {/* Compass */}
                             <g transform={`translate(${p(LOT_W) - 28},18)`}>
-                                <circle cx={0} cy={0} r={15} fill="rgba(20,16,12,0.75)" stroke={C.accent} strokeWidth={0.8} />
+                                <circle cx={0} cy={0} r={15} fill={isDark ? "rgba(20,16,12,0.75)" : "rgba(255,255,255,0.75)"} stroke={C.accent} strokeWidth={0.8} />
                                 <polygon points="0,-12 3.5,0 0,-5 -3.5,0" fill={C.accent} />
-                                <polygon points="0,12 3.5,0 0,5 -3.5,0" fill="#666" />
+                                <polygon points="0,12 3.5,0 0,5 -3.5,0" fill={isDark ? "#666" : "#aaa"} />
                                 <text x={0} y={-15} textAnchor="middle" fontSize={7} fill={C.accent} fontWeight="bold">N</text>
-                                <text x={0} y={24} textAnchor="middle" fontSize={5} fill="#555" fontFamily="monospace">à confirmer</text>
+                                <text x={0} y={24} textAnchor="middle" fontSize={5} fill={t.textMuted} fontFamily="monospace">à confirmer</text>
                             </g>
 
                             {/* Floor watermark */}
@@ -705,7 +739,7 @@ export default function VillaPlan() {
                     {/* Hints */}
                     <div style={{
                         position: "absolute", bottom: 8, left: 8,
-                        fontSize: 8, color: "#444", fontFamily: "monospace", lineHeight: 1.8
+                        fontSize: 8, color: t.textMuted, fontFamily: "monospace", lineHeight: 1.8
                     }}>
                         🖱 Molette = zoom &nbsp;·&nbsp; Glisser = déplacer &nbsp;·&nbsp; Clic pièce = détails
                     </div>
@@ -713,7 +747,7 @@ export default function VillaPlan() {
                     {/* Legend symbols */}
                     <div style={{
                         position: "absolute", bottom: 8, right: 8,
-                        fontSize: 7, color: "#555", fontFamily: "monospace", textAlign: "right", lineHeight: 2
+                        fontSize: 7, color: t.textMuted, fontFamily: "monospace", textAlign: "right", lineHeight: 2
                     }}>
                         <span style={{ color: "#4488cc" }}>══</span> Fenêtre &nbsp;
                         <span style={{ color: "#888" }}>⌒</span> Porte battante &nbsp;
@@ -724,22 +758,23 @@ export default function VillaPlan() {
 
                 {/* ── Right Panel ── */}
                 <div style={{
-                    width: 256, background: "#1a1612", borderLeft: "1px solid #2e2820",
-                    display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0
+                    width: 256, background: t.panel, borderLeft: `1px solid ${t.panelBorder}`,
+                    display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0,
+                    transition: "background 0.3s ease"
                 }}>
                     {/* Active floor badge */}
                     <div style={{
-                        padding: "10px 14px", borderBottom: "1px solid #2e2820",
-                        background: floorTheme[floor].btn + "55"
+                        padding: "10px 14px", borderBottom: `1px solid ${t.panelBorder}`,
+                        background: floorTheme[floor].btn + (isDark ? "55" : "22")
                     }}>
-                        <div style={{ fontSize: 8, color: "#666", letterSpacing: 2, marginBottom: 3 }}>ÉTAGE ACTIF</div>
+                        <div style={{ fontSize: 8, color: t.textSub, letterSpacing: 2, marginBottom: 3 }}>ÉTAGE ACTIF</div>
                         <div style={{ fontSize: 15, fontWeight: "bold", color: floorTheme[floor].active }}>
                             {fd.name}
                         </div>
                         {!fd.available && (
                             <div style={{
                                 marginTop: 5, fontSize: 8, color: "#cc8844", padding: "2px 8px",
-                                background: "#3a2010", border: "1px solid #664422", display: "inline-block"
+                                background: isDark ? "#3a2010" : "#fff5e6", border: isDark ? "1px solid #664422" : "1px solid #eebb88", display: "inline-block"
                             }}>
                                 ⏳ Phase future — structure prévue
                             </div>
@@ -752,7 +787,7 @@ export default function VillaPlan() {
                             <div>
                                 <button onClick={() => setSelected(null)}
                                     style={{
-                                        fontSize: 7, color: "#666", background: "none", border: "none",
+                                        fontSize: 7, color: t.textSub, background: "none", border: "none",
                                         cursor: "pointer", marginBottom: 8, fontFamily: "monospace"
                                     }}>
                                     ← retour
@@ -767,18 +802,18 @@ export default function VillaPlan() {
                                     <div style={{ fontSize: 8, color: "#aa8844", marginBottom: 6 }}>{selectedRoom.sub}</div>
                                 )}
                                 {selectedRoom.area > 0 && (
-                                    <div style={{ fontSize: 28, color: "#f0d880", fontWeight: "bold", marginBottom: 10 }}>
+                                    <div style={{ fontSize: 28, color: isDark ? "#f0d880" : "#d0a030", fontWeight: "bold", marginBottom: 10 }}>
                                         {selectedRoom.area}
-                                        <span style={{ fontSize: 11, color: "#666", fontWeight: "normal" }}> m²</span>
+                                        <span style={{ fontSize: 11, color: t.textSub, fontWeight: "normal" }}> m²</span>
                                     </div>
                                 )}
-                                <div style={{ fontSize: 7, color: "#5a5040", letterSpacing: 1, marginBottom: 6 }}>
+                                <div style={{ fontSize: 7, color: t.legendTitle, letterSpacing: 1, marginBottom: 6 }}>
                                     {selectedRoom.outdoor ? "🌿 ESPACE EXTÉRIEUR" : "🏠 ESPACE INTÉRIEUR"}
                                 </div>
                                 {selectedRoom.notes?.map((note, i) => (
                                     <div key={i} style={{
-                                        fontSize: 8.5, color: "#a09070", lineHeight: 1.8,
-                                        padding: "2px 0", borderBottom: "1px solid #252018"
+                                        fontSize: 8.5, color: isDark ? "#a09070" : "#807050", lineHeight: 1.8,
+                                        padding: "2px 0", borderBottom: `1px solid ${t.noteLines}`
                                     }}>
                                         · {note}
                                     </div>
@@ -786,11 +821,11 @@ export default function VillaPlan() {
                             </div>
                         ) : (
                             <div>
-                                <div style={{ fontSize: 8, color: "#555", marginBottom: 14, lineHeight: 2 }}>
+                                <div style={{ fontSize: 8, color: t.textMuted, marginBottom: 14, lineHeight: 2 }}>
                                     Clique sur une pièce pour voir ses détails, notes et surfaces.
                                 </div>
 
-                                <div style={{ fontSize: 7, color: "#5a5040", letterSpacing: 1, marginBottom: 8 }}>LÉGENDE COULEURS</div>
+                                <div style={{ fontSize: 7, color: t.legendTitle, letterSpacing: 1, marginBottom: 8 }}>LÉGENDE COULEURS</div>
                                 {[
                                     [C.salon, "Grand Salon (DH)"], [C.cuisine, "Cuisine + Îlot"],
                                     [C.suite, "Suite parentale"], [C.chambre, "Chambres"],
@@ -803,13 +838,13 @@ export default function VillaPlan() {
                                     <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                                         <div style={{
                                             width: 10, height: 10, background: col,
-                                            border: "1px solid #4a4030", flexShrink: 0
+                                            border: `1px solid ${t.zoomBorder}`, flexShrink: 0
                                         }} />
-                                        <span style={{ fontSize: 8, color: "#7a7060" }}>{lbl}</span>
+                                        <span style={{ fontSize: 8, color: isDark ? "#7a7060" : "#8a8070" }}>{lbl}</span>
                                     </div>
                                 ))}
 
-                                <div style={{ fontSize: 7, color: "#5a5040", letterSpacing: 1, marginTop: 14, marginBottom: 8 }}>RÉSUMÉ SURFACES</div>
+                                <div style={{ fontSize: 7, color: t.legendTitle, letterSpacing: 1, marginTop: 14, marginBottom: 8 }}>RÉSUMÉ SURFACES</div>
                                 {[
                                     ["Lot total", "300 m²"],
                                     ["Emprise maison", "~132 m²"],
@@ -823,7 +858,7 @@ export default function VillaPlan() {
                                     ["Sous-sol total", "~90 m²"],
                                 ].map(([k, v]) => (
                                     <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                        <span style={{ fontSize: 8, color: k.startsWith("─") ? "#2a2820" : "#7a7060" }}>{k}</span>
+                                        <span style={{ fontSize: 8, color: k.startsWith("─") ? t.noteLines : (isDark ? "#7a7060" : "#8a8070") }}>{k}</span>
                                         <span style={{ fontSize: 8, color: C.accent, fontWeight: "bold" }}>{v}</span>
                                     </div>
                                 ))}
@@ -832,8 +867,8 @@ export default function VillaPlan() {
                     </div>
 
                     {/* Quick floor switch */}
-                    <div style={{ padding: "8px 12px", borderTop: "1px solid #2e2820" }}>
-                        <div style={{ fontSize: 6, color: "#4a4030", letterSpacing: 1, marginBottom: 5 }}>CHANGER D'ÉTAGE</div>
+                    <div style={{ padding: "8px 12px", borderTop: `1px solid ${t.panelBorder}` }}>
+                        <div style={{ fontSize: 6, color: t.legendTitle, letterSpacing: 1, marginBottom: 5 }}>CHANGER D'ÉTAGE</div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
                             {floorOrder.map(f => {
                                 const th = floorTheme[f];
@@ -842,13 +877,14 @@ export default function VillaPlan() {
                                     <button key={f} onClick={() => { setFloor(f); setSelected(null); }}
                                         style={{
                                             padding: "5px 4px", border: "1px solid",
-                                            borderColor: active ? th.active : "#2e2820",
-                                            background: active ? th.btn : "#141210",
-                                            color: active ? th.active : "#666",
-                                            fontSize: 8, cursor: "pointer", fontFamily: "monospace", textAlign: "center"
+                                            borderColor: active ? th.active : t.panelBorder,
+                                            background: active ? th.btn : t.btnBtn,
+                                            color: active ? th.active : t.textSub,
+                                            fontSize: 8, cursor: "pointer", fontFamily: "monospace", textAlign: "center",
+                                            transition: "background 0.2s"
                                         }}>
                                         <div style={{ fontSize: 11, fontWeight: "bold" }}>{FLOORS[f].short}</div>
-                                        <div style={{ fontSize: 6, color: active ? th.active : "#444" }}>
+                                        <div style={{ fontSize: 6, color: active ? th.active : t.textMuted }}>
                                             {FLOORS[f].name.split(" ").slice(0, 2).join(" ")}
                                         </div>
                                     </button>
