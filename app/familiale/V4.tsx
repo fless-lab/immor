@@ -806,6 +806,7 @@ export default function Villa3DFull() {
     const animRef = useRef(null);
 
     const [isDark, setIsDark] = useState(false);
+    const [isTransparent, setIsTransparent] = useState(false);
     const [vis, setVis] = useState(() => {
         const v = {};
         TOGGLES.forEach(t => { v[t.key] = true; });
@@ -851,15 +852,16 @@ export default function Villa3DFull() {
         fill.position.set(-20, 15, -15);
         scene.add(fill);
 
-        // Extended ground
-        const eg = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshLambertMaterial({ color: 0x1e2e0e }));
-        eg.rotation.x = -Math.PI / 2; eg.position.set(7.5, -0.05, 10); eg.receiveShadow = true;
-        scene.add(eg);
-        const grid = new THREE.GridHelper(120, 120, 0x1c1a10, 0x161410);
-        grid.position.set(7.5, -0.01, 10); scene.add(grid);
-
         // Build
         const groups = buildAllGroups(scene);
+        
+        // Extended ground (part of lot group)
+        const eg = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshLambertMaterial({ color: 0x1e2e0e, transparent: true }));
+        eg.rotation.x = -Math.PI / 2; eg.position.set(7.5, -0.05, 10); eg.receiveShadow = true;
+        groups["lot"].add(eg);
+        const grid = new THREE.GridHelper(120, 120, 0x1c1a10, 0x161410);
+        grid.position.set(7.5, -0.01, 10); groups["lot"].add(grid);
+
         groupsRef.current = { ...groups, scene, sun, fill, grid };
 
         // Camera control
@@ -948,6 +950,24 @@ export default function Villa3DFull() {
         }
     }, [isDark, t]);
 
+    // Transparency sync
+    useEffect(() => {
+        if (!groupsRef.current || !groupsRef.current.lot) return;
+        groupsRef.current.lot.traverse(obj => {
+            if (obj.isMesh && obj.material) {
+                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                mats.forEach(m => {
+                    m.transparent = true;
+                    m.opacity = isTransparent ? 0.25 : 1.0;
+                    m.needsUpdate = true;
+                });
+            }
+            if (obj.isLine || obj.isGridHelper) {
+                obj.visible = !isTransparent;
+            }
+        });
+    }, [isTransparent]);
+
     // Camera preset
     const applyPreset = useCallback((idx) => {
         const p = CAM_PRESETS[idx];
@@ -1009,11 +1029,16 @@ export default function Villa3DFull() {
 
                 <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
                     <button onClick={() => setShowPanel(p => !p)} style={{
-                        padding: "3px 10px", border: "1px solid #2a2818", background: "#0e0c08",
-                        color: "#888", fontSize: 7, cursor: "pointer", fontFamily: "monospace"
+                        padding: "3px 10px", border: `1px solid ${t.border}`, background: "none",
+                        color: t.text, fontSize: 7, cursor: "pointer", fontFamily: "monospace", borderRadius: 4
                     }}>{showPanel ? "◀ Panel" : "▶ Panel"}</button>
-                    <button onClick={() => toggleAll(true)} style={{ padding: "3px 8px", border: "1px solid #2a2818", background: "#0e0c08", color: "#666", fontSize: 7, cursor: "pointer", fontFamily: "monospace" }}>Tout ✓</button>
-                    <button onClick={() => toggleAll(false)} style={{ padding: "3px 8px", border: "1px solid #2a2818", background: "#0e0c08", color: "#666", fontSize: 7, cursor: "pointer", fontFamily: "monospace" }}>Tout ✗</button>
+                    <button onClick={() => setIsTransparent(!isTransparent)} style={{
+                        padding: "3px 10px", border: `1px solid ${isTransparent ? t.text : t.border}`, 
+                        background: isTransparent ? t.text : "none",
+                        color: isTransparent ? t.header : t.text, fontSize: 7, cursor: "pointer", fontFamily: "monospace", borderRadius: 4
+                    }}>{isTransparent ? "Mode Opaque" : "Mode Fantôme 👻"}</button>
+                    <button onClick={() => toggleAll(true)} style={{ padding: "3px 8px", border: `1px solid ${t.border}`, background: "none", color: t.text, fontSize: 7, cursor: "pointer", fontFamily: "monospace", borderRadius: 4 }}>Tout ✓</button>
+                    <button onClick={() => toggleAll(false)} style={{ padding: "3px 8px", border: `1px solid ${t.border}`, background: "none", color: t.text, fontSize: 7, cursor: "pointer", fontFamily: "monospace", borderRadius: 4 }}>Tout ✗</button>
                 </div>
             </div>
 
