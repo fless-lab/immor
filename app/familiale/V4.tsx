@@ -805,11 +805,16 @@ export default function Villa3DFull() {
     const rendRef = useRef(null);
     const animRef = useRef(null);
 
+    const [isDark, setIsDark] = useState(false);
     const [vis, setVis] = useState(() => {
         const v = {};
         TOGGLES.forEach(t => { v[t.key] = true; });
         return v;
     });
+
+    const t = isDark 
+        ? { bg: 0x14110e, fog: 0x14110e, sun: 0xfff8e8, sunInt: 1.6, fill: 0x445566, header: "#1a1610", border: "#2e2818", panel: "#0e0c08", text: "#c8a840", subText: "#5a4a20" }
+        : { bg: 0xf0f4f8, fog: 0xf0f4f8, sun: 0xffffff, sunInt: 1.2, fill: 0xffffff, header: "#ffffff", border: "#d1d9e6", panel: "rgba(255,255,255,0.9)", text: "#2c3e50", subText: "#7a6840" };
     const [activePreset, setActivePreset] = useState(0);
     const [showPanel, setShowPanel] = useState(true);
 
@@ -841,10 +846,10 @@ export default function Villa3DFull() {
         sun.shadow.mapSize.set(2048, 2048);
         Object.assign(sun.shadow.camera, { near: 1, far: 150, left: -25, right: 25, top: 30, bottom: -30 });
         scene.add(sun);
-
-        const fillLight = new THREE.DirectionalLight(0xaaccff, 0.35);
-        fillLight.position.set(-20, 15, -15);
-        scene.add(fillLight);
+        
+        const fill = new THREE.DirectionalLight(0xaaccff, 0.35);
+        fill.position.set(-20, 15, -15);
+        scene.add(fill);
 
         // Extended ground
         const eg = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshLambertMaterial({ color: 0x1e2e0e }));
@@ -854,7 +859,8 @@ export default function Villa3DFull() {
         grid.position.set(7.5, -0.01, 10); scene.add(grid);
 
         // Build
-        groupsRef.current = buildAllGroups(scene);
+        const groups = buildAllGroups(scene);
+        groupsRef.current = { ...groups, scene, sun, fill, grid };
 
         // Camera control
         let down = false, lx = 0, ly = 0;
@@ -928,6 +934,20 @@ export default function Villa3DFull() {
         });
     }, [vis]);
 
+    // Sync Theme
+    useEffect(() => {
+        if (!groupsRef.current) return;
+        const { scene, sun, fill, grid } = groupsRef.current;
+        scene.background.set(t.bg);
+        scene.fog.color.set(t.bg);
+        sun.color.set(t.sun);
+        sun.intensity = t.sunInt;
+        fill.color.set(t.fill);
+        if (grid) {
+            grid.material.color.set(isDark ? 0x1c1a10 : 0xd0d8e0);
+        }
+    }, [isDark, t]);
+
     // Camera preset
     const applyPreset = useCallback((idx) => {
         const p = CAM_PRESETS[idx];
@@ -949,14 +969,15 @@ export default function Villa3DFull() {
 
             {/* TOP BAR */}
             <div style={{
-                padding: "6px 14px", background: "#1a1610", borderBottom: "1px solid #2e2818",
-                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexShrink: 0
+                padding: "6px 14px", background: t.header, borderBottom: `1px solid ${t.border}`,
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexShrink: 0,
+                transition: "all 0.3s"
             }}>
                 <div>
-                    <div style={{ fontSize: 10, color: "#c8a840", letterSpacing: 3, textTransform: "uppercase" }}>
+                    <div style={{ fontSize: 10, color: t.text, letterSpacing: 3, textTransform: "uppercase", transition: "color 0.3s" }}>
                         Villa Évolutive R+2 · Vue 3D Complète
                     </div>
-                    <div style={{ fontSize: 7, color: "#4a4030" }}>
+                    <div style={{ fontSize: 7, color: isDark ? "#4a4030" : "#888", transition: "color 0.3s" }}>
                         Agovodou, Lomé · 300m² · SS + R+0 + structure R+1/R+2
                     </div>
                 </div>
@@ -965,13 +986,26 @@ export default function Villa3DFull() {
                 <div style={{ display: "flex", gap: 2, marginLeft: 10, flexWrap: "wrap" }}>
                     {CAM_PRESETS.map((p, i) => (
                         <button key={i} onClick={() => applyPreset(i)} style={{
-                            padding: "3px 8px", border: `1px solid ${i === activePreset ? "#c8a840" : "#2a2418"}`,
-                            background: i === activePreset ? "#2a2010" : "#0e0c08",
-                            color: i === activePreset ? "#c8a840" : "#666", fontSize: 7,
-                            cursor: "pointer", fontFamily: "monospace"
+                            padding: "3px 8px", border: `1px solid ${i === activePreset ? t.text : isDark ? "#2a2418" : "#d1d9e6"}`,
+                            background: i === activePreset ? (isDark ? "#2a2010" : "#fff") : (isDark ? "#0e0c08" : "#f8f9fa"),
+                            color: i === activePreset ? t.text : (isDark ? "#666" : "#adb5bd"), fontSize: 7,
+                            cursor: "pointer", fontFamily: "monospace", borderRadius: 4, transition: "all 0.2s"
                         }}>{p.name}</button>
                     ))}
                 </div>
+
+                {/* Theme Toggle */}
+                <button
+                    onClick={() => setIsDark(!isDark)}
+                    style={{
+                        padding: "6px 12px", borderRadius: 20, border: `1px solid ${t.border}`,
+                        background: "none", color: t.text, cursor: "pointer", fontSize: 9,
+                        display: "flex", alignItems: "center", gap: 6, marginLeft: 10,
+                        transition: "all 0.3s"
+                    }}
+                >
+                    {isDark ? "☀️ Light" : "🌙 Dark"}
+                </button>
 
                 <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
                     <button onClick={() => setShowPanel(p => !p)} style={{
@@ -1001,12 +1035,12 @@ export default function Villa3DFull() {
                 {/* SIDE PANEL */}
                 {showPanel && (
                     <div style={{
-                        width: 210, background: "#0e0c08", borderLeft: "1px solid #2a2010",
-                        overflow: "auto", flexShrink: 0, padding: "8px 0"
+                        width: 210, background: t.panel, borderLeft: `1px solid ${t.border}`,
+                        overflow: "auto", flexShrink: 0, padding: "8px 0", transition: "all 0.3s"
                     }}>
                         <div style={{
-                            padding: "4px 12px 8px", fontSize: 8, color: "#5a4a20",
-                            letterSpacing: 2, textTransform: "uppercase", borderBottom: "1px solid #1e1c10"
+                            padding: "4px 12px 8px", fontSize: 8, color: t.subText,
+                            letterSpacing: 2, textTransform: "uppercase", borderBottom: `1px solid ${isDark ? "#1e1c10" : "#e9ecef"}`
                         }}>
                             Calques
                         </div>
@@ -1021,30 +1055,30 @@ export default function Villa3DFull() {
                         ].map(grp => (
                             <div key={grp.title} style={{ marginBottom: 4 }}>
                                 <div style={{
-                                    padding: "5px 12px", fontSize: 7, color: "#4a4030",
-                                    background: "#131208", letterSpacing: 1
+                                    padding: "5px 12px", fontSize: 7, color: isDark ? "#4a4030" : "#888",
+                                    background: isDark ? "#131208" : "#f8f9fa", letterSpacing: 1
                                 }}>{grp.title}</div>
                                 {grp.keys.map(key => {
-                                    const t = TOGGLES.find(t => t.key === key);
-                                    if (!t) return null;
+                                    const t_toggle = TOGGLES.find(item => item.key === key);
+                                    if (!t_toggle) return null;
                                     return (
                                         <div key={key}
                                             onClick={() => setVis(p => ({ ...p, [key]: !p[key] }))}
                                             style={{
                                                 display: "flex", alignItems: "center", gap: 8,
                                                 padding: "5px 14px", cursor: "pointer",
-                                                background: vis[key] ? "transparent" : "rgba(0,0,0,0.3)",
-                                                borderBottom: "1px solid #141210",
+                                                background: vis[key] ? "transparent" : (isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.05)"),
+                                                borderBottom: `1px solid ${isDark ? "#141210" : "#f1f3f5"}`,
                                                 transition: "background 0.1s"
                                             }}>
                                             <div style={{
                                                 width: 9, height: 9, flexShrink: 0,
-                                                background: vis[key] ? t.color : "#222",
-                                                border: `1px solid ${vis[key] ? t.color : "#333"}`,
+                                                background: vis[key] ? t_toggle.color : (isDark ? "#222" : "#e9ecef"),
+                                                border: `1px solid ${vis[key] ? t_toggle.color : (isDark ? "#333" : "#dee2e6")}`,
                                                 transition: "all 0.15s"
                                             }} />
-                                            <span style={{ fontSize: 8, color: vis[key] ? "#a09070" : "#333" }}>
-                                                {t.label}
+                                            <span style={{ fontSize: 8, color: vis[key] ? t.text : (isDark ? "#333" : "#adb5bd") }}>
+                                                {t_toggle.label}
                                             </span>
                                             <span style={{
                                                 marginLeft: "auto", fontSize: 7,
@@ -1059,8 +1093,8 @@ export default function Villa3DFull() {
                         ))}
 
                         {/* Quick combos */}
-                        <div style={{ padding: "8px 10px", borderTop: "1px solid #1e1c10", marginTop: 6 }}>
-                            <div style={{ fontSize: 7, color: "#5a4a20", letterSpacing: 1, marginBottom: 5 }}>VUES RAPIDES</div>
+                        <div style={{ padding: "8px 10px", borderTop: `1px solid ${t.border}`, marginTop: 6 }}>
+                            <div style={{ fontSize: 7, color: t.subText, letterSpacing: 1, marginBottom: 5 }}>VUES RAPIDES</div>
                             {[
                                 {
                                     label: "SS Seul", fn: () => {
@@ -1091,9 +1125,9 @@ export default function Villa3DFull() {
                             ].map(({ label, fn }) => (
                                 <button key={label} onClick={fn} style={{
                                     display: "block", width: "100%", padding: "5px 8px", marginBottom: 3,
-                                    border: "1px solid #2a2010", background: "#0e0c08",
-                                    color: "#7a6840", fontSize: 7.5, cursor: "pointer", fontFamily: "monospace",
-                                    textAlign: "left"
+                                    border: `1px solid ${t.border}`, background: "none",
+                                    color: isDark ? "#7a6840" : "#495057", fontSize: 7.5, cursor: "pointer", fontFamily: "monospace",
+                                    textAlign: "left", borderRadius: 4, transition: "all 0.2s"
                                 }}>{label}</button>
                             ))}
                         </div>

@@ -247,7 +247,12 @@ export default function Villa3D() {
     const mountRef = useRef(null);
     const stateRef = useRef(null);
     const [visible, setVisible] = useState({ "-1": true, "0": true, "1": true, "2": true });
+    const [isDark, setIsDark] = useState(false);
     const [hint, setHint] = useState("Glisser pour tourner · Molette pour zoomer");
+
+    const t = isDark 
+        ? { bg: 0x14110e, fog: 0x14110e, sun: 0xfff8e8, sunInt: 1.6, fill: 0x445566, grid1: 0x2a2818, grid2: 0x161410, header: "#1e1a14", border: "#3a3020", panel: "rgba(20,16,10,0.85)", text: "#c8a840" }
+        : { bg: 0xf0f4f8, fog: 0xfecf8, sun: 0xffffff, sunInt: 1.2, fill: 0xffffff, grid1: 0xd0d8e0, grid2: 0xe0e8f0, header: "#ffffff", border: "#d1d9e6", panel: "rgba(255,255,255,0.85)", text: "#2c3e50" };
 
     useEffect(() => {
         const container = mountRef.current;
@@ -299,7 +304,7 @@ export default function Villa3D() {
 
         // Build scene and get groups
         const groups = buildScene(scene);
-        stateRef.current = { groups };
+        stateRef.current = { groups, scene, sun, fill, grid };
 
         // ── Orbit controls ────────────────────────────────────────
         let theta = -0.5, phi = 0.75, radius = 38;
@@ -387,24 +392,43 @@ export default function Villa3D() {
         });
     }, [visible]);
 
+    // Sync Theme
+    useEffect(() => {
+        if (!stateRef.current) return;
+        const { scene, sun, fill, grid } = stateRef.current;
+        scene.background.set(t.bg);
+        scene.fog.color.set(t.bg);
+        sun.color.set(t.sun);
+        sun.intensity = t.sunInt;
+        fill.color.set(t.fill);
+        if (grid) {
+            grid.material.color.set(t.grid2); // center line
+            grid.material.color.set(t.grid1); // grid lines
+            // GridHelper doesn't directly expose sub-colors easily after creation via setters 
+            // but we can swap its material or just recreate. For simplicity, we update the background mostly.
+        }
+    }, [isDark, t]);
+
     const toggle = f => setVisible(p => ({ ...p, [f]: !p[f] }));
 
     return (
         <div style={{
             display: "flex", flexDirection: "column", height: "100vh",
-            background: "#141210", fontFamily: "'Courier New', monospace", overflow: "hidden"
+            background: isDark ? "#141210" : "#f0f4f8", fontFamily: "'Courier New', monospace", overflow: "hidden",
+            transition: "background 0.3s ease"
         }}>
             {/* Header */}
             <div style={{
-                padding: "8px 16px", background: "#1e1a14",
-                borderBottom: "1px solid #3a3020",
-                display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", flexShrink: 0
+                padding: "8px 16px", background: t.header,
+                borderBottom: `1px solid ${t.border}`,
+                display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", flexShrink: 0,
+                transition: "all 0.3s ease"
             }}>
                 <div>
-                    <div style={{ fontSize: 10, color: "#c8a840", letterSpacing: 3, textTransform: "uppercase" }}>
+                    <div style={{ fontSize: 10, color: t.text, letterSpacing: 3, textTransform: "uppercase", transition: "color 0.3s" }}>
                         Villa Évolutive — Vue 3D Interactive
                     </div>
-                    <div style={{ fontSize: 7, color: "#555", marginTop: 1 }}>
+                    <div style={{ fontSize: 7, color: isDark ? "#555" : "#888", marginTop: 1 }}>
                         Agovodou, Lomé · ~300 m²
                     </div>
                 </div>
@@ -414,11 +438,12 @@ export default function Villa3D() {
                     {Object.entries(FLOOR_META).map(([f, m]) => (
                         <button key={f} onClick={() => toggle(f)} style={{
                             padding: "4px 12px",
-                            border: `1.5px solid ${visible[f] ? m.color : "#2e2820"}`,
-                            background: visible[f] ? "#2a2018" : "#0e0c0a",
-                            color: visible[f] ? m.color : "#444",
+                            border: `1.5px solid ${visible[f] ? m.color : isDark ? "#2e2820" : "#d1d9e6"}`,
+                            background: visible[f] ? (isDark ? "#2a2018" : "#fff") : (isDark ? "#0e0c0a" : "#f8f9fa"),
+                            color: visible[f] ? m.color : (isDark ? "#444" : "#adb5bd"),
                             fontSize: 8, cursor: "pointer", fontFamily: "monospace",
-                            transition: "all 0.15s", minWidth: 52
+                            transition: "all 0.15s", minWidth: 52,
+                            borderRadius: 4
                         }}>
                             <div style={{ fontSize: 12, fontWeight: "bold" }}>{m.short}</div>
                             <div style={{ fontSize: 6, marginTop: 1 }}>
@@ -427,6 +452,19 @@ export default function Villa3D() {
                         </button>
                     ))}
                 </div>
+
+                {/* Theme Toggle */}
+                <button
+                    onClick={() => setIsDark(!isDark)}
+                    style={{
+                        padding: "6px 12px", borderRadius: 20, border: `1px solid ${t.border}`,
+                        background: "none", color: t.text, cursor: "pointer", fontSize: 9,
+                        display: "flex", alignItems: "center", gap: 6, marginLeft: 10,
+                        transition: "all 0.3s"
+                    }}
+                >
+                    {isDark ? "☀️ Light" : "🌙 Dark"}
+                </button>
 
                 <div style={{ marginLeft: "auto", fontSize: 7, color: "#444" }}>
                     🖱 Glisser = rotation &nbsp;·&nbsp; Molette = zoom
@@ -438,9 +476,9 @@ export default function Villa3D() {
                 {/* Legend overlay */}
                 <div style={{
                     position: "absolute", bottom: 12, left: 12,
-                    background: "rgba(20,16,10,0.85)", padding: "8px 12px",
-                    border: "1px solid #3a3020", fontSize: 7, color: "#888",
-                    lineHeight: 2, pointerEvents: "none"
+                    background: t.panel, padding: "8px 12px",
+                    border: `1px solid ${t.border}`, fontSize: 7, color: isDark ? "#888" : "#555",
+                    lineHeight: 2, pointerEvents: "none", transition: "all 0.3s"
                 }}>
                     {[
                         ["#c8a020", "Sous-sol (SS)"],
